@@ -8,11 +8,82 @@ import subprocess
 
 import cherrypy
 import pythoncom
+import struct
 import win32com
 import win32com.client
 from astropy.coordinates import *
 from astropy.time import Time
 from cherrypy.lib import file_generator
+
+
+class PHDCommunicator():
+
+    def __init__(self):
+        self.s = socket.socket()         # Create a socket object
+        self.host = socket.gethostname()      # Get local machine name
+        self.port = 4300                # Reserve a port for your service.
+        self.s.connect((self.host, self.port))
+
+    def __del__(self):
+        self.s.close()
+
+    def _sendandreceive(self, cmd):
+        byte = bytearray()
+        byte.append(cmd)
+        self.s.send(byte)
+        dat = self.s.recv(8)
+        return struct.unpack('B', dat)[0]
+
+    def getstatus(self, noniceout=False):
+        status = self._sendandreceive(17)
+        if noniceout:
+            return status
+        else:
+            if status == 0:
+                return "Leerlauf (not paused, looping, or guiding)"
+            elif status == 1:
+                return "Loop l&auml;uft und Stern wurde ausgew&auml;hlt"
+            elif status == 2:
+                return "Kalibrieren..."
+            elif status == 3:
+                return "Guiding aktiv und Stern ausgew&auml;hlt"
+            elif status == 4:
+                return "Guiding aktiv aber Stern verloren!"
+            elif status == 100:
+                return "Pausiert"
+            elif status == 101:
+                return "Loop l&auml;uft aber kein Stern ausgew&auml;hlt"
+
+    def autoselectstar(self):
+        status = self._sendandreceive(14)
+        if status == 1:
+            return True
+        else:
+            return False
+
+    def startloop(self):
+        self._sendandreceive(19)
+        stat = self.getstatus(True)
+        if stat == 101 or stat == 1:
+            return True
+        else:
+            return False
+
+    def startguide(self):
+        self._sendandreceive(20)
+        stat = self.getstatus(True)
+        if stat == 2 or stat == 4:
+            return True
+        else:
+            return False
+
+    def stop(self):
+        self._sendandreceive(18)
+        stat = self.getstatus(True)
+        if stat == 0 or stat == 100:
+            return True
+        else:
+            return False
 
 
 class BYECommunicator():
@@ -97,6 +168,9 @@ class TMWServer(object):
 
     @cherrypy.expose
     def run(self, name):
+        self.bdsrun(name)
+
+    def bdsrun(self, name):
         bdsrun = self.current_dir + "\\BDSRun.exe /Script:"
         bdsrun_folder = "\\baramundi\\"
         os.popen(bdsrun + self.current_dir + bdsrun_folder + name + ".bds /S")
@@ -235,6 +309,62 @@ class TMWServer(object):
         except Exception as e:
             cherrypy.response.headers['Content-Type'] = 'application/json'
             return ""
+
+    @cherrypy.expose
+    def phd_status(self):
+        try:
+            phd = PHDCommunicator()
+            status = phd.getstatus()
+            phd = None
+            return {'status': True, 'message': status}
+        except Exception as e:
+            return {'status': False, 'message': str(e)}
+
+    @cherrypy.expose
+    def phd_start(self):
+        try:
+            self.bdsrun("phd_starten")
+            phd = PHDCommunicator()
+            status = phd.getstatus()
+            phd = None
+            return {'status': True, 'message': status}
+        except Exception as e:
+            return {'status': False, 'message': str(e)}
+
+    @cherrypy.expose
+    def phd_guiding_start(self):
+        try:
+            phd = PHDCommunicator()
+            if phd.startloop():
+                if phd.autoselectstar():
+                    if phd.startguide():
+                        phd = None
+                        return {'status': True, 'message': phd.getstatus()}
+                    else:
+                        phd = None
+                        return {'status': False, 'message': phd.getstatus()}
+                else:
+                    phd = None
+                    return {'status': False, 'message': "Keinen Stern gefunden, noch mal probieren oder Position korrigieren. PHD: " + phd.getstatus()}
+            else:
+                phd = None
+                return {'status': False,
+                        'message': "Fehler: StartLoop klappt nicht. PHD: " + phd.getstatus()}
+        except Exception as e:
+            return {'status': False, 'message': str(e)}
+
+    @cherrypy.expose
+    def phd_guiding_stop(self):
+        try:
+            phd = PHDCommunicator()
+            if phd.stop():
+                phd = None
+                return {'status': True, 'message': phd.getstatus()}
+            else:
+                phd = None
+                return {'status': False, 'message': phd.getstatus()}
+        except Exception as e:
+            return {'status': False, 'message': str(e)}
 
 def validate_password(realm, username, password):
     if server_challenge == password:
