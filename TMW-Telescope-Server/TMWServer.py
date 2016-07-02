@@ -11,6 +11,7 @@ import subprocess
 
 import win32com
 import win32com.client
+import pythoncom
 from cherrypy.lib import auth_basic, file_generator
 
 
@@ -76,7 +77,8 @@ class TMWServer(object):
                 #yield "Status pr&uml;fen...<br>"
                 #time.sleep(2)
 
-                #pythoncom.CoInitialize()
+                pythoncom.CoInitialize()
+
                 o = win32com.client.Dispatch("EQMOD.Telescope")
                 o.Connected = True
                 o.IncClientCount()
