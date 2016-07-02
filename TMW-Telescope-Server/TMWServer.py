@@ -137,7 +137,7 @@ class TMWServer(object):
         try:
             pythoncom.CoInitialize()
             o = win32com.client.Dispatch("EQMOD.Telescope")
-            o.SlewToCoordinates(85.77224879437026, 7.42952237511382)
+            o.SlewToCoordinates(12.108299999978255, 85.25500000000177)
             #7.42952237511382 deg2
             #85.77224879437026
             return {'status': True}
