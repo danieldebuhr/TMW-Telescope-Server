@@ -59,13 +59,6 @@ class TMWServer(object):
 
     @cherrypy.expose
     def run(self, name):
-        Clickbot().execBot(name)
-
-class Clickbot():
-
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-
-    def execBot(self, name):
         bdsrun = self.current_dir + "\\BDSRun.exe /Script:"
         bdsrun_folder = "\\baramundi\\"
         os.popen(bdsrun + self.current_dir + bdsrun_folder + name + ".bds /S")
@@ -80,29 +73,12 @@ if __name__ == '__main__':
 
     Config = configparser.ConfigParser()
     Config.read("./config.cfg")
-    port = Config.get("Settings", "Port")
     server_challenge = Config.get("Settings", "ServerChallenge")
 
+    cherrypy.config.update({'tools.auth_basic.checkpassword': validate_password,
+                            'tools.auth_basic.on': True,
+                            'tools.auth_basic.realm': "localhost"})
     current_dir = os.path.dirname(os.path.abspath(__file__))
 
-    conf = {
-        'global': {
-            'engine.autoreload.on': False
-        },
-        '/': {
-            'tools.auth_basic.on': True,
-            'tools.auth_basic.realm': 'localhost',
-            'tools.auth_basic.checkpassword': validate_password,
-            'tools.encode.on': True,
-            'tools.encode.encoding': 'utf-8',
-            'tools.staticdir.root': os.path.abspath(os.getcwd()),
-        },
-        '/static': {
-            'tools.staticdir.on': True,
-            'tools.staticdir.dir': './static'
-        }
-    }
-
-    cherrypy.config.update({'server.socket_host': '0.0.0.0', 'server.socket_port': int(port)})
-    cherrypy.quickstart(TMWServer(), '/', config=conf)
+    cherrypy.quickstart(TMWServer(), "/", "server.cfg")
 
