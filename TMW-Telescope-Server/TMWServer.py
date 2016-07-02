@@ -10,6 +10,7 @@ import datetime
 import subprocess
 
 import win32com
+import win32com.client
 from cherrypy.lib import auth_basic, file_generator
 
 
