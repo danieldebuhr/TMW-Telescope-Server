@@ -195,6 +195,7 @@ class TMWServer(object):
             return {'status': False, 'message': str(e)}
 
     @cherrypy.expose
+    @cherrypy.tools.json_out()
     def bye_status(self):
         try:
             status = None
