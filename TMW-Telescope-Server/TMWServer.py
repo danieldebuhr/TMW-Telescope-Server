@@ -213,6 +213,7 @@ class TMWServer(object):
             cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="lastpicture.cr2"'
             bye = BYECommunicator()
             image = bye.getpicturepath()
+            print(image)
             bye = None
             f = io.open(image, 'rb')
             f.seek(0)
