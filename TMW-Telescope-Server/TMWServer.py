@@ -131,6 +131,19 @@ class TMWServer(object):
         except Exception as e:
             return {'status': False, 'message': "Konnte EQMOD ParkPosition nicht setzen", 'detail': e.message}
 
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def eqmod_test(self):
+        try:
+            pythoncom.CoInitialize()
+            o = win32com.client.Dispatch("EQMOD.Telescope")
+            o.SlewToCoordinates(7.42952237511382, 85.77224879437026)
+            #7.42952237511382 deg2
+            #85.77224879437026
+            return {'status': True}
+        except Exception as e:
+            return {'status': False, 'message': "Konnte EQMOD ParkPosition nicht setzen", 'detail': e.message}
+
 def validate_password(realm, username, password):
     if server_challenge == password:
         return True
