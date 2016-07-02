@@ -345,19 +345,16 @@ class TMWServer(object):
             if phd.startloop():
                 if phd.autoselectstar():
                     if phd.startguide():
-                        phd = None
                         return {'status': True, 'message': phd.getstatus()}
                     else:
-                        phd = None
                         return {'status': False, 'message': phd.getstatus()}
                 else:
-                    phd = None
                     return {'status': False, 'message': "Keinen Stern gefunden, noch mal probieren oder Position korrigieren. PHD: " + phd.getstatus()}
             else:
-                phd = None
                 return {'status': False,
                         'message': "Fehler: StartLoop klappt nicht. PHD: " + phd.getstatus()}
         except Exception as e:
+            phd = None
             return {'status': False, 'message': str(e)}
 
     @cherrypy.expose
