@@ -42,7 +42,7 @@ class BYECommunicator():
         return picturepath
 
     def takepicture(self, duration, iso):
-        self._send("takepicture duration:" + duration + " iso:" + iso + " bin:1")
+        self._send("takepicture quality:raw duration:" + duration + " iso:" + iso + " bin:1")
 
     def sendconnect(self):
         status = self._sendandreceive("connect")
@@ -203,6 +203,19 @@ class TMWServer(object):
             status = bye.getstatus()
             bye = None
             return {'status': status != "error", 'message': status}
+        except Exception as e:
+            return {'status': False, 'message': str(e)}
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def bye_takepicture(self, duration, iso):
+        try:
+            status = None
+            bye = BYECommunicator()
+            bye = BYECommunicator()
+            bye.takepicture(duration, iso)
+            bye = None
+            return {'status': True}
         except Exception as e:
             return {'status': False, 'message': str(e)}
 
