@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import time
 import os
 import io
 import cherrypy
@@ -7,6 +8,9 @@ import configparser
 import datetime
 
 import subprocess
+
+import pythoncom
+import win32com
 from cherrypy.lib import auth_basic, file_generator
 
 
@@ -62,6 +66,30 @@ class TMWServer(object):
         bdsrun = self.current_dir + "\\BDSRun.exe /Script:"
         bdsrun_folder = "\\baramundi\\"
         os.popen(bdsrun + self.current_dir + bdsrun_folder + name + ".bds /S")
+
+    @cherrypy.expose
+    def eqmod_start(self):
+        def eqmod_starten():
+            try:
+                yield "EQMod - Starten...<br>"
+                #os.popen(self.current_dir + "\\eqascom_startup.vbs")
+                #yield "Status pr&uml;fen...<br>"
+                #time.sleep(2)
+
+                pythoncom.CoInitialize()
+                o = win32com.client.Dispatch("EQMOD.Telescope")
+                o.Connected = True
+                o.IncClientCount()
+
+                if o.CanSlew:
+                    yield "EQMod - erfolgreich gestartet" + "<br>"
+                else:
+                    yield "EQMod - Fehler beim Starten von EQMod (Teleskop verbunden & eingeschaltet?)." + "<br>"
+
+            except Exception as e:
+                yield "EQMod - Fehler beim Starten von EQMod." + "<br>" + e.message + "<br>"
+
+        return eqmod_starten()
 
 
 def validate_password(realm, username, password):
