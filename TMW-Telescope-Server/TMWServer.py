@@ -88,10 +88,13 @@ class PHDCommunicator():
 
 class BYECommunicator():
     def __init__(self):
-        self.s = socket.socket()  # Create a socket object
-        self.host = socket.gethostname()  # Get local machine name
-        self.port = 1499  # BYE Port
-        self.s.connect((self.host, self.port))
+        try:
+            self.s = socket.socket()  # Create a socket object
+            self.host = socket.gethostname()  # Get local machine name
+            self.port = 1499  # BYE Port
+            self.s.connect((self.host, self.port))
+        except Exception as e:
+            raise(e)
 
     def __del__(self):
         self.s.close()
@@ -395,7 +398,7 @@ class TMWServer(object):
     def bye_start(self):
         try:
             self.bdsrun("bye_start")
-            time.sleep(5)
+            time.sleep(10)
             try:
                 status = None
                 bye = BYECommunicator()
