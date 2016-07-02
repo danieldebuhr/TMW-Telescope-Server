@@ -5,7 +5,7 @@ import io
 import os
 import socket
 import subprocess
-
+import time
 import cherrypy
 import pythoncom
 import struct
@@ -311,6 +311,7 @@ class TMWServer(object):
             return ""
 
     @cherrypy.expose
+    @cherrypy.tools.json_out()
     def phd_status(self):
         try:
             phd = PHDCommunicator()
@@ -321,6 +322,7 @@ class TMWServer(object):
             return {'status': False, 'message': str(e)}
 
     @cherrypy.expose
+    @cherrypy.tools.json_out()
     def phd_start(self):
         try:
             self.bdsrun("phd_starten")
@@ -332,6 +334,7 @@ class TMWServer(object):
             return {'status': False, 'message': str(e)}
 
     @cherrypy.expose
+    @cherrypy.tools.json_out()
     def phd_guiding_start(self):
         try:
             phd = PHDCommunicator()
@@ -354,6 +357,7 @@ class TMWServer(object):
             return {'status': False, 'message': str(e)}
 
     @cherrypy.expose
+    @cherrypy.tools.json_out()
     def phd_guiding_stop(self):
         try:
             phd = PHDCommunicator()
@@ -365,6 +369,65 @@ class TMWServer(object):
                 return {'status': False, 'message': phd.getstatus()}
         except Exception as e:
             return {'status': False, 'message': str(e)}
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def at_start(self):
+        try:
+            self.bdsrun("at_start")
+            # todo: Start validate
+            return {'status': True}
+        except Exception as e:
+            return {'status': False, 'message': str(e)}
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def at_platesolve(self):
+        try:
+            self.bdsrun("at_platesolve")
+            # todo: Funktion zur Auswertung von Plate Solve Ergebnissen?
+            return {'status': True}
+        except Exception as e:
+            return {'status': False, 'message': str(e)}
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def bye_start(self):
+        try:
+            self.bdsrun("bye_start")
+            time.sleep(5)
+            try:
+                status = None
+                bye = BYECommunicator()
+                status = bye.getstatus()
+                bye = None
+                return {'status': status != "error"}
+            except Exception as e:
+                return {'status': False, 'message': str(e)}
+        except Exception as e:
+            return {'status': False, 'message': str(e)}
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def bye_beenden(self):
+        try:
+            self.bdsrun("bye_beenden")
+            # todo: Validieren
+            return {'status': True}
+        except Exception as e:
+            return {'status': False, 'message': str(e)}
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def phd_beenden(self):
+        try:
+            self.bdsrun("phd_beenden")
+            # todo: Validieren
+            return {'status': True}
+        except Exception as e:
+            return {'status': False, 'message': str(e)}
+
+
 
 def validate_password(realm, username, password):
     if server_challenge == password:
