@@ -142,7 +142,7 @@ class TMWServer(object):
             #85.77224879437026
             return {'status': True}
         except Exception as e:
-            return {'status': False, 'message': "Konnte EQMOD ParkPosition nicht setzen", 'detail': e.message}
+            return {'status': False, 'message': "Konnte EQMOD ParkPosition nicht setzen", 'detail': str(e)}
 
 def validate_password(realm, username, password):
     if server_challenge == password:
