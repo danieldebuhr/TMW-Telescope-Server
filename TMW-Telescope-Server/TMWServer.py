@@ -26,12 +26,12 @@ class BYECommunicator():
         self.s.close()
 
     def _sendandreceive(self, cmd):
-        self.s.send(cmd)
-        dat = self.s.recv(16)
+        self.s.send(cmd.encode())
+        dat = self.s.recv(16).decode()
         return dat
 
     def _send(self, cmd):
-        self.s.send(cmd)
+        self.s.send(cmd.encode())
 
     def getstatus(self, noniceout=False):
         status = self._sendandreceive("getstatus")
