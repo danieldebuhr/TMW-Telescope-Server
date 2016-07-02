@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import time
+import json
 import os
 import io
 import cherrypy
@@ -69,30 +70,30 @@ class TMWServer(object):
         os.popen(bdsrun + self.current_dir + bdsrun_folder + name + ".bds /S")
 
     @cherrypy.expose
+    @cherrypy.tools.json_out()
     def eqmod_start(self):
-        def eqmod_starten():
-            try:
-                yield "EQMod - Starten...<br>"
-                #os.popen(self.current_dir + "\\eqascom_startup.vbs")
-                #yield "Status pr&uml;fen...<br>"
-                #time.sleep(2)
+        try:
+            pythoncom.CoInitialize()
+            o = win32com.client.Dispatch("EQMOD.Telescope")
+            o.Connected = True
+            o.IncClientCount()
+            if o.CanSlew:
+                return {'status': True}
+            else:
+                return {'status': False, 'message': "Fehler beim Starten von EQMOD (Teleskop verbunden & eingeschaltet?)"}
+        except Exception as e:
+            return {'status': False, 'message': "Fehler beim Starten von EQMOD: " + e.message}
 
-                pythoncom.CoInitialize()
-
-                o = win32com.client.Dispatch("EQMOD.Telescope")
-                o.Connected = True
-                o.IncClientCount()
-
-                if o.CanSlew:
-                    yield "EQMod - erfolgreich gestartet" + "<br>"
-                else:
-                    yield "EQMod - Fehler beim Starten von EQMod (Teleskop verbunden & eingeschaltet?)." + "<br>"
-
-            except Exception as e:
-                yield "EQMod - Fehler beim Starten von EQMod." + "<br>" + e.message + "<br>"
-
-        return eqmod_starten()
-
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def eqmod_stop(self):
+        try:
+            pythoncom.CoInitialize()
+            o = win32com.client.Dispatch("EQMOD.Telescope")
+            o.StopClientCount()
+            return {'status': True}
+        except Exception as e:
+            return {'status': False, 'message': "Konnte EQMOD nicht beenden: " + e.message}
 
 def validate_password(realm, username, password):
     if server_challenge == password:
