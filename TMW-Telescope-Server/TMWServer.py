@@ -38,7 +38,7 @@ class BYECommunicator():
         return status
 
     def getpicturepath(self, noniceout=False):
-        picturepath = self._sendandreceive("getpicturepath:")
+        picturepath = self._sendandreceive("getpicturepath")
         return picturepath
 
     def takepicture(self, duration, iso):
