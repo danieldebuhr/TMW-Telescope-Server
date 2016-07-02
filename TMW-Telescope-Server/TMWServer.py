@@ -93,7 +93,43 @@ class TMWServer(object):
             o.StopClientCount()
             return {'status': True}
         except Exception as e:
-            return {'status': False, 'message': "Konnte EQMOD nicht beenden: " + e.message}
+            return {'status': False, 'message': "Konnte EQMOD nicht beenden", 'detail': e.message}
+
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def eqmod_unpark(self):
+        try:
+            pythoncom.CoInitialize()
+            o = win32com.client.Dispatch("EQMOD.Telescope")
+            o.Unpark()
+            return {'status': True}
+        except Exception as e:
+            return {'status': False, 'message': "Konnte EQMOD nicht unparken", 'detail': e.message}
+
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def eqmod_park(self):
+        try:
+            pythoncom.CoInitialize()
+            o = win32com.client.Dispatch("EQMOD.Telescope")
+            o.Park()
+            return {'status': True}
+        except Exception as e:
+            return {'status': False, 'message': "Konnte EQMOD nicht parken", 'detail': e.message}
+
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def eqmod_setparkposition(self):
+        try:
+            pythoncom.CoInitialize()
+            o = win32com.client.Dispatch("EQMOD.Telescope")
+            o.SetPark()
+            return {'status': True}
+        except Exception as e:
+            return {'status': False, 'message': "Konnte EQMOD ParkPosition nicht setzen", 'detail': e.message}
 
 def validate_password(realm, username, password):
     if server_challenge == password:
