@@ -329,6 +329,7 @@ class TMWServer(object):
     def phd_start(self):
         try:
             self.bdsrun("phd_starten")
+            time.sleep(30)
             phd = PHDCommunicator()
             status = phd.getstatus()
             phd = None
