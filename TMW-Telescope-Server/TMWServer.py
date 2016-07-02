@@ -1,25 +1,55 @@
 # -*- coding: utf-8 -*-
-from astropy import units as u
-from astropy.time import Time
-from astropy.coordinates import *
-import time
-import json
-import os
-import io
-import cherrypy
 import configparser
 import datetime
-
+import io
+import os
+import socket
 import subprocess
 
+import cherrypy
+import pythoncom
 import win32com
 import win32com.client
-import pythoncom
-from cherrypy.lib import auth_basic, file_generator
+from astropy.coordinates import *
+from astropy.time import Time
+from cherrypy.lib import file_generator
+
+
+class BYECommunicator():
+    def __init__(self):
+        self.s = socket.socket()  # Create a socket object
+        self.host = socket.gethostname()  # Get local machine name
+        self.port = 1499  # BYE Port
+        self.s.connect((self.host, self.port))
+
+    def __del__(self):
+        self.s.close()
+
+    def _sendandreceive(self, cmd):
+        self.s.send(cmd)
+        dat = self.s.recv(16)
+        return dat
+
+    def _send(self, cmd):
+        self.s.send(cmd)
+
+    def getstatus(self, noniceout=False):
+        status = self._sendandreceive("getstatus")
+        return status
+
+    def getpicturepath(self, noniceout=False):
+        picturepath = self._sendandreceive("getpicturepath:")
+        return picturepath
+
+    def takepicture(self, duration, iso):
+        self._send("takepicture duration:" + duration + " iso:" + iso + " bin:1")
+
+    def sendconnect(self):
+        status = self._sendandreceive("connect")
+        return status
 
 
 class TMWServer(object):
-
     Config = configparser.ConfigParser()
     Config.read("./config.cfg")
 
@@ -82,7 +112,8 @@ class TMWServer(object):
             if o.CanSlew:
                 return {'status': True}
             else:
-                return {'status': False, 'message': "Fehler beim Starten von EQMOD (Teleskop verbunden & eingeschaltet?)"}
+                return {'status': False,
+                        'message': "Fehler beim Starten von EQMOD (Teleskop verbunden & eingeschaltet?)"}
         except Exception as e:
             return {'status': False, 'message': "Fehler beim Starten von EQMOD: " + e.message}
 
@@ -97,7 +128,6 @@ class TMWServer(object):
         except Exception as e:
             return {'status': False, 'message': "Konnte EQMOD nicht beenden", 'detail': e.message}
 
-
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def eqmod_unpark(self):
@@ -109,7 +139,6 @@ class TMWServer(object):
         except Exception as e:
             return {'status': False, 'message': "Konnte EQMOD nicht unparken", 'detail': e.message}
 
-
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def eqmod_park(self):
@@ -120,7 +149,6 @@ class TMWServer(object):
             return {'status': True}
         except Exception as e:
             return {'status': False, 'message': "Konnte EQMOD nicht parken", 'detail': e.message}
-
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
@@ -156,6 +184,43 @@ class TMWServer(object):
         except Exception as e:
             return {'status': False, 'message': "Konnte EQMOD ParkPosition nicht setzen", 'detail': str(e)}
 
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def bye_takepicture(self, sec, iso):
+        try:
+            bye = BYECommunicator()
+            bye.takepicture(sec, iso)
+            return {'status': True}
+        except Exception as e:
+            return {'status': False, 'message': str(e)}
+
+    @cherrypy.expose
+    def bye_status(self):
+        try:
+            status = None
+            bye = BYECommunicator()
+            status = bye.getstatus()
+            bye = None
+            return {'status': status != "error", 'message': status}
+        except Exception as e:
+            return {'status': False, 'message': str(e)}
+
+    @cherrypy.expose
+    def bye_lastpicture(self):
+        try:
+            cherrypy.response.headers['Content-Type'] = 'application/octet-stream'
+            cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="lastpicture.cr2"'
+            bye = BYECommunicator()
+            image = bye.getpicturepath()
+            bye = None
+            f = io.open(image, 'rb')
+            f.seek(0)
+            return file_generator(f)
+
+        except Exception as e:
+            cherrypy.response.headers['Content-Type'] = 'application/json'
+            return ""
+
 def validate_password(realm, username, password):
     if server_challenge == password:
         return True
@@ -163,7 +228,6 @@ def validate_password(realm, username, password):
 
 
 if __name__ == '__main__':
-
     Config = configparser.ConfigParser()
     Config.read("./config.cfg")
     server_challenge = Config.get("Settings", "ServerChallenge")
@@ -174,4 +238,3 @@ if __name__ == '__main__':
     current_dir = os.path.dirname(os.path.abspath(__file__))
 
     cherrypy.quickstart(TMWServer(), "/", "server.cfg")
-
