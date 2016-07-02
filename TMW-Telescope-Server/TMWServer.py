@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-
+from astropy import units as u
+from astropy.time import Time
+from astropy.coordinates import *
 import time
 import json
 import os
@@ -133,13 +135,23 @@ class TMWServer(object):
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def eqmod_test(self):
+    def eqmod_goto_name(self, object_name):
         try:
+            now = datetime.datetime.now()
+            observatory_location = EarthLocation(lat=53.082806, lon=7.800694, height=5)
+            observing_time = Time(now)  # 1am UTC=6pm AZ mountain time
+            observer = AltAz(location=observatory_location, obstime=observing_time)
+
+            skyobject = SkyCoord.from_name(object_name)
+            skyobject2 = skyobject.transform_to(observer)
+            newAltAzcoordiantes = SkyCoord(alt=skyobject2.alt, az=skyobject2.az, obstime=observing_time, frame='altaz',
+                                           location=observatory_location)
+
             pythoncom.CoInitialize()
             o = win32com.client.Dispatch("EQMOD.Telescope")
-            o.SlewToCoordinates(12.108299999978255, 85.25500000000177)
-            #7.42952237511382 deg2
-            #85.77224879437026
+            o.Unpark()
+            o.SlewToCoordinates(str(newAltAzcoordiantes.icrs.ra.hour), str(newAltAzcoordiantes.icrs.dec.degree))
+
             return {'status': True}
         except Exception as e:
             return {'status': False, 'message': "Konnte EQMOD ParkPosition nicht setzen", 'detail': str(e)}
@@ -148,6 +160,7 @@ def validate_password(realm, username, password):
     if server_challenge == password:
         return True
     return False
+
 
 if __name__ == '__main__':
 
