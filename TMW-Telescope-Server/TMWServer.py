@@ -259,7 +259,7 @@ class TMWServer(object):
 
             return {'status': True}
         except Exception as e:
-            return {'status': False, 'message': "Konnte EQMOD ParkPosition nicht setzen", 'detail': str(e)}
+            return {'status': False, 'message': "Fehler beim GoTo", 'detail': str(e)}
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
@@ -428,6 +428,14 @@ class TMWServer(object):
         except Exception as e:
             return {'status': False, 'message': str(e)}
 
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def shutdown(self):
+        try:
+            subprocess.call(["shutdown", "-f", "-s", "-t", "10"])
+            return {'status': True}
+        except Exception as e:
+            return {'status': False, 'message': str(e)}
 
 
 def validate_password(realm, username, password):
