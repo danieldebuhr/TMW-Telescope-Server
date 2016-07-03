@@ -1,0 +1,3 @@
+server.ssl_module = "builtin"
+server.ssl_certificate = "ssl/cert.pem"
+server.ssl_private_key = "ssl/privkey.pem"
