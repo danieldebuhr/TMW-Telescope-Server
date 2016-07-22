@@ -14,7 +14,61 @@ import win32com.client
 from astropy.coordinates import *
 from astropy.time import Time
 from cherrypy.lib import file_generator
+import queue
+import threading
+import http.client
+from cherrypy.process.plugins import SimplePlugin
 
+
+class BackgroundTaskQueue(SimplePlugin):
+    thread = None
+
+    def __init__(self, bus, qsize=100, qwait=2, safe_stop=True):
+        SimplePlugin.__init__(self, bus)
+        self.q = queue.Queue(qsize)
+        self.qwait = qwait
+        self.safe_stop = safe_stop
+
+    def start(self):
+        self.running = True
+        if not self.thread:
+            self.thread = threading.Thread(target=self.run)
+            self.thread.start()
+
+    def stop(self):
+        if self.safe_stop:
+            self.running = "draining"
+        else:
+            self.running = False
+
+        if self.thread:
+            self.thread.join()
+            self.thread = None
+        self.running = False
+
+    def run(self):
+        while self.running:
+            try:
+                try:
+                    func, args, kwargs = self.q.get(block=True, timeout=self.qwait)
+                except queue.Empty:
+                    if self.running == "draining":
+                        return
+                    continue
+                else:
+                    func(*args, **kwargs)
+                    if hasattr(self.q, 'task_done'):
+                        self.q.task_done()
+            except:
+                self.bus.log("Error in BackgroundTaskQueue %r." % self,
+                             level=40, traceback=True)
+
+    def put(self, func, *args, **kwargs):
+        """Schedule the given func to be run."""
+        self.q.put((func, args, kwargs))
+
+bgtask = BackgroundTaskQueue(cherrypy.engine)
+bgtask.subscribe()
 
 class PHDCommunicator():
 
@@ -129,6 +183,14 @@ class TMWServer(object):
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
 
+    def responseServer(self, host, port, cmd, key):
+        conn = http.client.HTTPConnection(host, port)
+        conn.request("GET", "/" + cmd + "/" + key)
+        r1 = conn.getresponse()
+        conn.close()
+        print(r1.status, r1.reason)
+        pass
+
     @cherrypy.expose
     def index(self):
 
@@ -167,7 +229,9 @@ class TMWServer(object):
         proc.wait()
         f = io.open('screenshot.png', 'rb')
         f.seek(0)
-        return file_generator(f)
+        data = f.readall()
+        f.close()
+        return file_generator(data)
 
     @cherrypy.expose
     def run(self, name):
@@ -238,16 +302,16 @@ class TMWServer(object):
         except Exception as e:
             return {'status': False, 'message': "Konnte EQMOD ParkPosition nicht setzen", 'detail': e.message}
 
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    def eqmod_goto_name(self, object_name):
+    def background_eqmod_goto_name(self, host, port, cmd, key, objekt):
         try:
+            print("GoTo: " + objekt)
+
             now = datetime.datetime.now()
             observatory_location = EarthLocation(lat=53.082806, lon=7.800694, height=5)
             observing_time = Time(now)  # 1am UTC=6pm AZ mountain time
             observer = AltAz(location=observatory_location, obstime=observing_time)
 
-            skyobject = SkyCoord.from_name(object_name)
+            skyobject = SkyCoord.from_name(objekt)
             skyobject2 = skyobject.transform_to(observer)
             newAltAzcoordiantes = SkyCoord(alt=skyobject2.alt, az=skyobject2.az, obstime=observing_time, frame='altaz',
                                            location=observatory_location)
@@ -257,19 +321,20 @@ class TMWServer(object):
             o.Unpark()
             o.SlewToCoordinates(str(newAltAzcoordiantes.icrs.ra.hour), str(newAltAzcoordiantes.icrs.dec.degree))
 
-            return {'status': True}
+            self.responseServer(host, port, cmd, key)
+            return True
         except Exception as e:
-            return {'status': False, 'message': "Fehler beim GoTo", 'detail': str(e)}
+            return False
+
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def bye_takepicture(self, sec, iso):
+    def eqmod_goto_name(self, host, port, cmd, key, object_name):
         try:
-            bye = BYECommunicator()
-            bye.takepicture(sec, iso)
+            bgtask.put(self.background_eqmod_goto_name, host, port, cmd, key, object_name)
             return {'status': True}
         except Exception as e:
-            return {'status': False, 'message': str(e)}
+            return {'status': False, 'message': "Fehler beim GoTo", 'detail': str(e)}
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
@@ -288,7 +353,6 @@ class TMWServer(object):
     def bye_takepicture(self, duration, iso):
         try:
             status = None
-            bye = BYECommunicator()
             bye = BYECommunicator()
             bye.takepicture(duration, iso)
             bye = None
