@@ -451,7 +451,7 @@ class TMWServer(object):
         try:
             # Das eigentliche GoTo wird später erledigt. Hier wurde der Befehl nut entgegengenommen
             # und direkt eine Antwort formuliert.
-            bgtask.put(background_eqmod_goto_name, host, port, cmd, key, object_name)
+            bgtask.put(background_eqmod_goto_name, object_name, host, port, cmd, key)
             return {'status': True}
         except Exception as e:
             return {'status': False, 'message': "Fehler beim GoTo", 'detail': str(e)}
