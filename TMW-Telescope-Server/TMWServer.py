@@ -747,6 +747,7 @@ def responseserver(host, port, cmd, key, status=True):
     :param status: Erfolg- oder Misserfolgsmeldung
     :return:
     """
+    print("Inform Sender: ", host, port, cmd, key, status)
     conn = http.client.HTTPConnection(host, port)
     conn.request("GET", "/" + cmd + "/" + key + "/" + str(status))
     r1 = conn.getresponse()
