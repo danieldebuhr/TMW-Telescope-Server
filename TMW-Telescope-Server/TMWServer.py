@@ -328,7 +328,8 @@ class TMWServer(object):
         # Header auf image/png für die Bildausgabe setzen
         cherrypy.response.headers['Content-Type'] = 'image/png'
         # Über die mitgelieferte Screenshto.exe ein Bildschirmfoto schießen.
-        proc = subprocess.Popen(current_dir + "\\" + Config.get("Settings", "PathToScreenshot"))
+        #proc = subprocess.Popen(current_dir + "\\" + Config.get("Settings", "PathToScreenshot"))
+        proc = subprocess.Popen(current_dir + "\\screenshot\\Screenshot.exe")
         proc.wait()
         # Bildschirmfoto öffnen und per file_generator an den Clienten zurückgeben.
         f = open('screenshot.png', 'rb')
