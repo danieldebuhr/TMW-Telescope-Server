@@ -438,7 +438,7 @@ class TMWServer(object):
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def eqmod_goto_name(self, host, port, cmd, key, object_name):
+    def eqmod_goto_name(self, object_name, host="", port="", cmd="", key=""):
         """
         Route '/eqmod_goto_name' - GoTo-Funktion mit Parametern der Rückantwort.
         :param host: Hostname des Servers
@@ -469,7 +469,7 @@ class TMWServer(object):
         """
         try:
             bdsrun("bye_start")
-            time.sleep(10)
+            time.sleep(20)
             try:
                 status = None
                 bye = BYECommunicator()
@@ -683,7 +683,7 @@ class TMWServer(object):
     pass
 
 
-def background_eqmod_goto_name(host, port, cmd, key, objekt):
+def background_eqmod_goto_name(objekt, host="", port="", cmd="", key=""):
     """
     Ermittelt die Position des angegebenen Objektes und berechnet diese
     auf AltAz-Koordinaten der aktuellen Sternwartenposition. Anschließend
@@ -713,11 +713,16 @@ def background_eqmod_goto_name(host, port, cmd, key, objekt):
         o.Unpark()
         o.SlewToCoordinates(str(newAltAzcoordiantes.icrs.ra.hour), str(newAltAzcoordiantes.icrs.dec.degree))
 
-        responseserver(host, port, cmd, key, True)
+        if host != "":
+            responseserver(host, port, cmd, key, True)
+
         return True
 
     except Exception as e:
-        responseserver(host, port, cmd, key, False)
+
+        if host != "":
+            responseserver(host, port, cmd, key, False)
+
         return False
 
 
