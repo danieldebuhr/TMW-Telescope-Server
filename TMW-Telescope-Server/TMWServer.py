@@ -683,7 +683,7 @@ class TMWServer(object):
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def test_astropy(self):
+    def test_astropy(self, objekt):
         print("                        ")
         print("Testing astropy...")
         print("                        ")
@@ -692,7 +692,7 @@ class TMWServer(object):
         observing_time = Time(now)  # 1am UTC=6pm AZ mountain time
         observer = AltAz(location=observatory_location, obstime=observing_time)
 
-        skyobject = SkyCoord.from_name("NGC 1234")
+        skyobject = SkyCoord.from_name(objekt)
         print(skyobject)
 
         print("                        ")
