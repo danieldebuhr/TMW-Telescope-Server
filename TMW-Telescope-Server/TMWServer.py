@@ -704,7 +704,7 @@ class TMWServer(object):
 
         newAltAzcoordiantes = SkyCoord(alt=skyobject2.alt, az=skyobject2.az, obstime=observing_time, frame='altaz',
                                        location=observatory_location)
-        print(newAltAzcoordiantes)
+        print(str(newAltAzcoordiantes.icrs.ra.hour), str(newAltAzcoordiantes.icrs.dec.degree))
         print("                        ")
         return {'status': True}
 
