@@ -695,14 +695,18 @@ class TMWServer(object):
         skyobject = SkyCoord.from_name("NGC 1234")
         print(skyobject)
 
+        print("                        ")
+
         skyobject2 = skyobject.transform_to(observer)
         print(skyobject2)
+
+        print("                        ")
 
         newAltAzcoordiantes = SkyCoord(alt=skyobject2.alt, az=skyobject2.az, obstime=observing_time, frame='altaz',
                                        location=observatory_location)
         print(newAltAzcoordiantes)
         print("                        ")
-        return {'Koords of NGC 1234': newAltAzcoordiantes}
+        return {'status': True}
 
     pass
 
