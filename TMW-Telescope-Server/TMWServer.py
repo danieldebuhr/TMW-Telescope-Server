@@ -681,7 +681,32 @@ class TMWServer(object):
 
     # </editor-fold>
 
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def test_astropy(self):
+        print("                        ")
+        print("Testing astropy...")
+        print("                        ")
+        now = datetime.datetime.now()
+        observatory_location = EarthLocation(lat=53.082806, lon=7.800694, height=5)
+        observing_time = Time(now)  # 1am UTC=6pm AZ mountain time
+        observer = AltAz(location=observatory_location, obstime=observing_time)
+
+        skyobject = SkyCoord.from_name("NGC 1234")
+        print(skyobject)
+
+        skyobject2 = skyobject.transform_to(observer)
+        print(skyobject2)
+
+        newAltAzcoordiantes = SkyCoord(alt=skyobject2.alt, az=skyobject2.az, obstime=observing_time, frame='altaz',
+                                       location=observatory_location)
+        print(newAltAzcoordiantes)
+        print("                        ")
+        return {'Koords of NGC 1234': newAltAzcoordiantes}
+
     pass
+
+
 
 
 def background_eqmod_goto_name(objekt, host="", port="", cmd="", key=""):
